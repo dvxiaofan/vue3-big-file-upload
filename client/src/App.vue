@@ -88,7 +88,7 @@ const formatSize = (bytes: number) => {
             {{ uploadStatus.message || stepLabels[uploadStatus.step] || uploadStatus.step }}
           </span>
           <span class="percentage" v-if="uploadStatus.step === 'hashing'">{{ uploadStatus.hashProgress }}%</span>
-          <span class="percentage" v-if="uploadStatus.step === 'uploading' || uploadStatus.step === 'paused'">{{ uploadStatus.progress }}%</span>
+          <span class="percentage" v-if="['uploading', 'paused', 'merging'].includes(uploadStatus.step)">{{ uploadStatus.progress }}%</span>
         </div>
 
         <div class="progress-container">
@@ -99,13 +99,18 @@ const formatSize = (bytes: number) => {
 
           <!-- 上传进度条 -->
           <div v-else class="progress-bar uploading">
-            <div class="progress-fill" :style="{ width: uploadStatus.progress + '%' }"></div>
+            <div class="progress-fill" :class="{ 'merging-fill': uploadStatus.step === 'merging' }" :style="{ width: uploadStatus.progress + '%' }"></div>
           </div>
+        </div>
+
+        <div v-if="uploadStatus.step === 'uploading' || uploadStatus.step === 'paused' || uploadStatus.step === 'merging'" class="speed-info">
+            <span v-if="uploadStatus.step !== 'merging'">🚀 {{ uploadStatus.speed || '-' }}</span>
+            <span v-if="uploadStatus.step !== 'merging'">⏱️ 预计剩余: {{ uploadStatus.remainingTime || '-' }}</span>
+            <span v-else class="merging-text">🔄 服务器正在合并切片，请耐心等待...</span>
         </div>
 
         <div v-if="uploadStatus.step === 'completed' && downloadUrl" class="result-box">
           <p>🎉 上传成功！</p>
-          <a :href="downloadUrl" target="_blank" class="download-link">下载/预览文件</a>
         </div>
 
         <div v-if="uploadStatus.step === 'error'" class="error-box">
@@ -293,9 +298,16 @@ const formatSize = (bytes: number) => {
 
 .status-badge.hashing { background: #fdf6ec; color: #e6a23c; }
 .status-badge.uploading { background: #ecf5ff; color: #409eff; }
+.status-badge.merging { background: #e8f3ff; color: #409eff; animation: pulse 1.5s infinite; }
 .status-badge.paused { background: #f4f4f5; color: #909399; }
 .status-badge.completed { background: #f0f9eb; color: #67c23a; }
 .status-badge.error { background: #fef0f0; color: #f56c6c; }
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
 
 .percentage {
   font-weight: bold;
@@ -309,6 +321,11 @@ const formatSize = (bytes: number) => {
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 1rem;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 100%;
 }
 
 .progress-fill {
@@ -325,6 +342,17 @@ const formatSize = (bytes: number) => {
 
 .progress-bar.uploading .progress-fill {
   background-color: #409eff;
+}
+
+.progress-fill.merging-fill {
+  background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent);
+  background-size: 1rem 1rem;
+  animation: progress-stripe 1s linear infinite;
+}
+
+@keyframes progress-stripe {
+  from { background-position: 1rem 0; }
+  to { background-position: 0 0; }
 }
 
 /* 结果与错误 */
@@ -346,5 +374,22 @@ const formatSize = (bytes: number) => {
   color: #f56c6c;
   font-size: 0.9rem;
   margin-top: 0.5rem;
+}
+
+.speed-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #909399;
+  margin-top: 0.5rem;
+  padding: 0 4px;
+}
+
+.merging-text {
+  width: 100%;
+  text-align: center;
+  color: #409eff;
+  font-weight: 500;
+  animation: pulse 1.5s infinite;
 }
 </style>
